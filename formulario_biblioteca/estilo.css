@@ -1,0 +1,174 @@
+/* Reset básico para unificar estilos */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Fuente y colores base */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Encabezado principal */
+h1 {
+    background-color: #4CAF50;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Subtítulos */
+h2, h3 {
+    color: #4CAF50;
+    margin: 20px 0;
+}
+
+/* Contenedor principal opcional */
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+/* Estilo de pestañas */
+.tab {
+    display: flex;
+    justify-content: center;
+    background-color: #f1f1f1;
+    border-bottom: 2px solid #4CAF50;
+    flex-wrap: wrap;
+    padding: 10px 0;
+}
+
+.tab button {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 12px 20px;
+    font-size: 16px;
+    margin: 0 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.tab button:hover {
+    background-color: #ddd;
+}
+
+.tab button.active {
+    background-color: #4CAF50;
+    color: #fff;
+    border-radius: 5px 5px 0 0;
+}
+
+/* Formularios centrados horizontalmente */
+form {
+    margin: 20px auto; /* Centrado horizontal */
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+}
+
+/* Estilos para inputs y select dentro del formulario */
+form input[type="text"],
+form input[type="number"],
+form input[type="email"],
+form input[type="date"],
+form select {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Botón de envío */
+form input[type="submit"] {
+    background-color: #4CAF50;
+    color: #fff;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form input[type="submit"]:hover {
+    background-color: #45a049;
+}
+
+/* Tablas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+thead {
+    background-color: #4CAF50;
+    color: #fff;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Botones de acción, como 'Eliminar' */
+.action-button {
+    padding: 6px 12px;
+    background-color: #f44336;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.action-button:hover {
+    background-color: #e53935;
+}
+
+/* Responsividad */
+@media (max-width: 600px) {
+    .tab button {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+
+    form {
+        padding: 15px;
+    }
+
+    th, td {
+        padding: 10px;
+    }
+
+    .tabcontent {
+        display: none;
+    }
+    .tabcontent.active {
+        display: block;
+    }
+}
