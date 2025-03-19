@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Biblioteca</title>
+  <link rel="stylesheet" href="estilo.css">
+
+</head>
+<body>
+  <h1>Gestión de Biblioteca</h1>
+
+  <div class="tab">
+    <button class="tablinks" onclick="openTab(event, 'Libros')">Libros</button>
+    <button class="tablinks" onclick="openTab(event, 'Ejemplares')">Ejemplares</button>
+    <button class="tablinks" onclick="openTab(event, 'Historial')">Historial</button>
+    <button class="tablinks" onclick="openTab(event, 'Prestamos')">Préstamos</button>
+    <button class="tablinks" onclick="openTab(event, 'Reservas')">Reservas</button>
+    <button class="tablinks" onclick="openTab(event, 'Usuarios')">Usuarios</button>
+  </div>
+
+  <!-- LIBROS -->
+  <div id="Libros" class="tabcontent">
+    <h2>Libros</h2>
+    <form id="form-libro">
+      <label>Título:</label> <input type="text" name="titulo" required><br>
+      <label>Autor:</label> <input type="text" name="autor" required><br>
+      <label>Número de Páginas:</label> <input type="number" name="paginas" required><br>
+      <label>Editorial:</label> <input type="text" name="editorial" required><br>
+      <input type="submit" value="Agregar Libro">
+    </form>
+    <h3>Lista de Libros</h3>
+    <table id="tabla-libros">
+      <thead>
+        <tr>
+          <th>Autor</th>
+          <th>Editorial</th>
+          <th>Páginas</th>
+          <th>Título</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- EJEMPLARES -->
+  <div id="Ejemplares" class="tabcontent">
+    <h2>Ejemplares</h2>
+    <form id="form-ejemplar">
+      <label>Número de Ejemplar:</label> 
+      <input type="text" name="numero_ejemplar" required><br>
+      <label>ID del Libro:</label> 
+      <input type="text" name="id_libro" required><br>
+      <label>Estado:</label>
+      <select name="estado">
+        <option value="available">Disponible</option>
+        <option value="borrowed">Prestado</option>
+      </select><br>
+      <input type="submit" value="Agregar Ejemplar">
+    </form>
+    <h3>Lista de Ejemplares</h3>
+    <table id="tabla-ejemplares">
+      <thead>
+        <tr>
+          <th>Estado</th>
+          <th>ID del Libro</th>
+          <th>Número de Ejemplar</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div id="Historial" class="tabcontent">
+    <h2>Historial</h2>
+    <form id="form-historial">
+      <label>Fecha de Entrega:</label> <input type="date" name="fecha_entrega" required><br>
+      <label>Estado del Libro:</label> <input type="text" name="estado_libro" required><br>
+      <label>ID Ejemplar:</label> <input type="text" name="id_ejemplar" required><br>
+      <label>ID Usuario:</label> <input type="text" name="id_usuario" required><br>
+      <label>ID Préstamo:</label> <input type="text" name="id_prestamo" required><br>
+      <input type="submit" value="Agregar Historial">
+    </form>
+    <h3>Lista de Historial</h3>
+    <table id="tabla-historial">
+      <thead>
+        <tr>
+          <th>ID Ejemplar</th>
+          <th>ID Usuario</th>
+          <th>ID Préstamo</th>
+          <th>Fecha de Entrega</th>
+          <th>Estado del Libro</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- PRÉSTAMOS -->
+  <div id="Prestamos" class="tabcontent">
+    <h2>Préstamos</h2>
+    <form id="form-prestamo">
+      <label>ID Ejemplar:</label> <input type="text" name="id_ejemplar" required><br>
+      <label>ID Usuario:</label> <input type="text" name="id_usuario" required><br>
+      <label>Fecha Recibido:</label> <input type="date" name="fecha_recibido" required><br>
+      <label>Fecha Debe Entregar:</label> <input type="date" name="fecha_debe_entregar" required><br>
+      <input type="submit" value="Agregar Préstamo">
+    </form>
+    <h3>Lista de Préstamos</h3>
+    <table id="tabla-prestamos">
+      <thead>
+        <tr>
+          <th>ID Ejemplar</th>
+          <th>ID Usuario</th>
+          <th>Fecha Recibido</th>
+          <th>Fecha de Entrega</th>
+          <th>Fecha Debe Entregar</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- RESERVAS -->
+  <div id="Reservas" class="tabcontent">
+    <h2>Reservas</h2>
+    <form id="form-reserva">
+      <label>ID del Usuario:</label> <input type="text" name="id_usuario" required><br>
+      <label>ID del Libro:</label> <input type="text" name="id_libro" required><br>
+      <label>Fecha de Solicitud:</label> <input type="date" name="fecha_solicitud" required><br>
+      <input type="submit" value="Agregar Reserva">
+    </form>
+    <h3>Lista de Reservas</h3>
+    <table id="tabla-reservas">
+      <thead>
+        <tr>
+          <th>ID Usuario</th>
+          <th>ID del Libro</th>
+          <th>Fecha de Solicitud</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- USUARIOS -->
+  <div id="Usuarios" class="tabcontent">
+    <h2>Usuarios</h2>
+    <form id="form-usuario">
+      <label>Nombre:</label> <input type="text" name="nombre" required><br>
+      <label>Correo:</label> <input type="email" name="correo" required><br>
+      <label>Teléfono:</label> <input type="text" name="telefono" required><br>
+      <input type="submit" value="Agregar Usuario">
+    </form>
+    <h3>Lista de Usuarios</h3>
+    <table id="tabla-usuarios">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Teléfono</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const camposPorTab = {
+      "Libros": ["autor", "editorial", "paginas", "titulo"],
+      "Ejemplares": ["estado", "id_libro", "numero_ejemplar"],
+      "Usuarios": ["nombre", "correo", "telefono"],
+      "Prestamos": ["id_ejemplar", "id_usuario", "fecha_recibido", "fecha_entrega", "fecha_debe_entregar"],
+      "Reservas": ["id_usuario", "id_libro", "fecha_solicitud"],
+      "Historial": ["id_ejemplar", "id_usuario", "id_prestamo", "fecha_entrega", "estado_libro"]
+    };
+
+    function openTab(evt, tabName) {
+      const tabcontent = document.getElementsByClassName("tabcontent");
+      for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      const tablinks = document.getElementsByClassName("tablinks");
+      for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+      cargarDatos(tabName);
+    }
+
+    async function cargarDatos(tabName) {
+      try {
+        const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}`);
+        const data = await response.json();
+        console.log(`Datos para ${tabName}:`, data);  // Para depuración
+        const tabla = document.getElementById(`tabla-${tabName.toLowerCase()}`).getElementsByTagName('tbody')[0];
+        tabla.innerHTML = "";
+        const campos = camposPorTab[tabName] || Object.keys(data[0] || {});
+        data.forEach(item => {
+          const row = tabla.insertRow();
+          campos.forEach(campo => {
+            const cell = row.insertCell();
+            cell.textContent = item[campo] !== undefined ? item[campo] : "";
+          });
+          const cell = row.insertCell();
+          const deleteButton = document.createElement('button');
+          deleteButton.textContent = 'Eliminar';
+          deleteButton.classList.add("action-button");
+          deleteButton.onclick = () => eliminarItem(tabName, item._id);
+          cell.appendChild(deleteButton);
+        });
+      } catch (error) {
+        console.error('Error al cargar datos:', error);
+      }
+    }
+
+    async function eliminarItem(tabName, id) {
+      try {
+        await fetch(`http://localhost:5000/${tabName.toLowerCase()}/${id}`, {
+          method: 'DELETE'
+        });
+        cargarDatos(tabName);
+      } catch (error) {
+        console.error('Error al eliminar ítem:', error);
+      }
+    }
+
+    function sendForm(formId, endpoint, tabName) {
+      const form = document.getElementById(formId);
+      form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+        const formData = new FormData(form);
+        try {
+          await fetch(endpoint, {
+            method: "POST",
+            body: formData
+          });
+          cargarDatos(tabName);
+          form.reset();
+        } catch (error) {
+          console.error(`Error al enviar el formulario ${formId}:`, error);
+        }
+      });
+    }
+
+    // Aquí corregimos los endpoints de envío para que sean los de agregar
+    sendForm("form-libro", "http://localhost:5000/add_libro", "Libros");
+    sendForm("form-ejemplar", "http://localhost:5000/add_ejemplar", "Ejemplares");
+    sendForm("form-historial", "http://localhost:5000/add_historial", "Historial");
+    sendForm("form-prestamo", "http://localhost:5000/add_prestamo", "Prestamos");
+    sendForm("form-reserva", "http://localhost:5000/add_reserva", "Reservas");
+    sendForm("form-usuario", "http://localhost:5000/add_usuario", "Usuarios");
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelector(".tablinks").click();
+    });
+  </script>
+</body>
+</html>
