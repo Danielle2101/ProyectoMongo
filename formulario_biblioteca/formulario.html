@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestión de Biblioteca</title>
   <link rel="stylesheet" href="estilo.css">
-
 </head>
 <body>
   <h1>Gestión de Biblioteca</h1>
@@ -22,7 +21,7 @@
   <!-- LIBROS -->
   <div id="Libros" class="tabcontent">
     <h2>Libros</h2>
-    <form id="form-libro">
+    <form id="form-libro"> <!-- Asegúrate de que el ID sea "form-libro" -->
       <label>Título:</label> <input type="text" name="titulo" required><br>
       <label>Autor:</label> <input type="text" name="autor" required><br>
       <label>Número de Páginas:</label> <input type="number" name="paginas" required><br>
@@ -33,10 +32,10 @@
     <table id="tabla-libros">
       <thead>
         <tr>
-          <th>Autor</th>
-          <th>Editorial</th>
-          <th>Páginas</th>
           <th>Título</th>
+          <th>Autor</th>
+          <th>Páginas</th>
+          <th>Editorial</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -48,7 +47,7 @@
   <div id="Ejemplares" class="tabcontent">
     <h2>Ejemplares</h2>
     <form id="form-ejemplar">
-      <label>Número de Ejemplar:</label> 
+      <label>Número de Ejemplares:</label> 
       <input type="text" name="numero_ejemplar" required><br>
       <label>ID del Libro:</label> 
       <input type="text" name="id_libro" required><br>
@@ -63,10 +62,11 @@
     <table id="tabla-ejemplares">
       <thead>
         <tr>
-          <th>Estado</th>
+          <th>Número de Ejemplares</th>
           <th>ID del Libro</th>
-          <th>Número de Ejemplar</th>
+          <th>Estado</th>
           <th>Acciones</th>
+          <th>Id</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -117,7 +117,6 @@
           <th>ID Ejemplar</th>
           <th>ID Usuario</th>
           <th>Fecha Recibido</th>
-          <th>Fecha de Entrega</th>
           <th>Fecha Debe Entregar</th>
           <th>Acciones</th>
         </tr>
@@ -174,14 +173,18 @@
 
   <script>
     const camposPorTab = {
-      "Libros": ["autor", "editorial", "paginas", "titulo"],
-      "Ejemplares": ["estado", "id_libro", "numero_ejemplar"],
+      "Libros": ["titulo", "autor", "paginas", "editorial"],
+      "Ejemplares": ["numero_ejemplar", "id_libro", "estado", "_id"],
       "Usuarios": ["nombre", "correo", "telefono"],
-      "Prestamos": ["id_ejemplar", "id_usuario", "fecha_recibido", "fecha_entrega", "fecha_debe_entregar"],
+      "Prestamos": ["id_ejemplar", "id_usuario", "fecha_recibido", "fecha_debe_entregar"],
       "Reservas": ["id_usuario", "id_libro", "fecha_solicitud"],
       "Historial": ["id_ejemplar", "id_usuario", "id_prestamo", "fecha_entrega", "estado_libro"]
     };
-
+  
+    let modoEdicion = false;
+    let idEdicion = null;
+    let tabActual = "";
+  
     function openTab(evt, tabName) {
       const tabcontent = document.getElementsByClassName("tabcontent");
       for (let i = 0; i < tabcontent.length; i++) {
@@ -193,16 +196,18 @@
       }
       document.getElementById(tabName).style.display = "block";
       evt.currentTarget.className += " active";
+      tabActual = tabName;
       cargarDatos(tabName);
     }
-
+  
     async function cargarDatos(tabName) {
       try {
         const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}`);
         const data = await response.json();
-        console.log(`Datos para ${tabName}:`, data);  // Para depuración
         const tabla = document.getElementById(`tabla-${tabName.toLowerCase()}`).getElementsByTagName('tbody')[0];
         tabla.innerHTML = "";
+
+        // campos que se van a mostrar
         const campos = camposPorTab[tabName] || Object.keys(data[0] || {});
         data.forEach(item => {
           const row = tabla.insertRow();
@@ -210,18 +215,26 @@
             const cell = row.insertCell();
             cell.textContent = item[campo] !== undefined ? item[campo] : "";
           });
-          const cell = row.insertCell();
+          // botón de eliminar
+          const cellAcciones = row.insertCell();
           const deleteButton = document.createElement('button');
           deleteButton.textContent = 'Eliminar';
-          deleteButton.classList.add("action-button");
+          deleteButton.className = 'action-button delete';
           deleteButton.onclick = () => eliminarItem(tabName, item._id);
-          cell.appendChild(deleteButton);
+          cellAcciones.appendChild(deleteButton);
+
+          // boton de editar 
+          const editButton = document.createElement('button');
+          editButton.textContent = 'Editar';
+          editButton.className = 'action-button edit';  
+          editButton.onclick = () => cargarFormularioParaEditar(tabName, item); // Llamar a la función aquí
+          cellAcciones.appendChild(editButton);
         });
       } catch (error) {
         console.error('Error al cargar datos:', error);
       }
     }
-
+  
     async function eliminarItem(tabName, id) {
       try {
         await fetch(`http://localhost:5000/${tabName.toLowerCase()}/${id}`, {
@@ -232,33 +245,72 @@
         console.error('Error al eliminar ítem:', error);
       }
     }
-
+  
+    // Función para redirigir a editar.html
+    function cargarFormularioParaEditar(tabName, item) {
+      // Redirigir a editar.html con el ID y la colección
+      window.location.href = `editar.html?coleccion=${tabName.toLowerCase()}&id=${item._id}`;
+    }
+  
     function sendForm(formId, endpoint, tabName) {
       const form = document.getElementById(formId);
-      form.addEventListener("submit", async function(e) {
+      form.addEventListener("submit", async function (e) {
         e.preventDefault();
         const formData = new FormData(form);
+        const objetoDatos = {};
+        formData.forEach((value, key) => (objetoDatos[key] = value));
+  
         try {
-          await fetch(endpoint, {
-            method: "POST",
-            body: formData
-          });
-          cargarDatos(tabName);
+          if (modoEdicion && idEdicion) {
+            // EDITAR - PUT con JSON
+            const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}/${idEdicion}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(objetoDatos),
+            });
+  
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error("Error PUT:", errorData);
+              alert("Error al editar: " + (errorData.error || "Desconocido"));
+              return;
+            }
+  
+            modoEdicion = false;
+            idEdicion = null;
+            form.querySelector('input[type="submit"]').value = "Agregar " + tabName.slice(0, -1);
+          } else {
+            // CREAR - POST con FormData
+            const response = await fetch(endpoint, {
+              method: "POST",
+              body: formData,
+            });
+  
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error("Error POST:", errorData);
+              alert("Error al agregar: " + (errorData.error || "Desconocido"));
+              return;
+            }
+          }
+  
+          await cargarDatos(tabName);
           form.reset();
         } catch (error) {
           console.error(`Error al enviar el formulario ${formId}:`, error);
         }
       });
     }
-
-    // Aquí corregimos los endpoints de envío para que sean los de agregar
+  
     sendForm("form-libro", "http://localhost:5000/add_libro", "Libros");
     sendForm("form-ejemplar", "http://localhost:5000/add_ejemplar", "Ejemplares");
     sendForm("form-historial", "http://localhost:5000/add_historial", "Historial");
     sendForm("form-prestamo", "http://localhost:5000/add_prestamo", "Prestamos");
     sendForm("form-reserva", "http://localhost:5000/add_reserva", "Reservas");
     sendForm("form-usuario", "http://localhost:5000/add_usuario", "Usuarios");
-
+  
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelector(".tablinks").click();
     });
