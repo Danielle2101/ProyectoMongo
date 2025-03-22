@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <h1>Editar</h1>
+  <form id="form-editar">
+    <!-- Los campos del formulario se generarán aquí dinámicamente -->
+  </form>
+  <button id="btn-guardar">Guardar Cambios</button>
+
+  <script>
+    // Obtener el ID del ítem a editar desde la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    const coleccion = urlParams.get('coleccion');
+
+    if (!id || !coleccion) {
+      alert("ID o colección no proporcionados");
+      window.location.href = "formulario.html"; // Redirigir si no hay ID o colección
+    }
+
+    // Campos por colección
+    const camposPorColeccion = {
+      "libros": ["titulo", "autor", "paginas", "editorial"],
+      "ejemplares": ["numero_ejemplar", "id_libro", "estado"],
+      "usuarios": ["nombre", "correo", "telefono"],
+      "prestamos": ["id_ejemplar", "id_usuario", "fecha_recibido", "fecha_debe_entregar"],
+      "reservas": ["id_usuario", "id_libro", "fecha_solicitud"],
+      "historial": ["id_ejemplar", "id_usuario", "id_prestamo", "fecha_entrega", "estado_libro"]
+    };
+
+    // Cargar datos del ítem a editar
+    async function cargarDatos() {
+      try {
+        const response = await fetch(`http://localhost:5000/${coleccion}/${id}`);
+        const data = await response.json();
+
+        if (!data) {
+          alert("Ítem no encontrado");
+          window.location.href = "formulario.html"; // Redirigir si no se encuentra el ítem
+          return;
+        }
+
+        const form = document.getElementById("form-editar");
+        const campos = camposPorColeccion[coleccion];
+
+        // Crear campos del formulario dinámicamente
+        campos.forEach(campo => {
+          const label = document.createElement("label");
+          label.textContent = campo + ": ";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.name = campo;
+          input.value = data[campo] || ""; // Llenar con los datos actuales
+          form.appendChild(label);
+          form.appendChild(input);
+          form.appendChild(document.createElement("br"));
+        });
+      } catch (error) {
+        console.error("Error al cargar datos:", error);
+      }
+    }
+
+    // Guardar cambios
+    document.getElementById("btn-guardar").addEventListener("click", async () => {
+      const form = document.getElementById("form-editar");
+      const formData = new FormData(form);
+      const objetoDatos = {};
+      formData.forEach((value, key) => (objetoDatos[key] = value));
+
+      try {
+        const response = await fetch(`http://localhost:5000/${coleccion}/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(objetoDatos),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Error al editar:", errorData);
+          alert("Error al editar: " + (errorData.error || "Desconocido"));
+          return;
+        }
+
+        alert("Cambios guardados correctamente");
+        window.location.href = "formulario.html"; // Redirigir después de guardar
+      } catch (error) {
+        console.error("Error al guardar cambios:", error);
+      }
+    });
+
+    // Cargar datos al iniciar la página
+    cargarDatos();
+  </script>
+</body>
+</html>

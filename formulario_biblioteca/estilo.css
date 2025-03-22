@@ -150,6 +150,58 @@ tbody tr:hover {
     background-color: #e53935;
 }
 
+/* Estilo para el botón Eliminar */
+.action-button.delete {
+    background-color: #f44336; /* Rojo */
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-right: 5px;
+}
+
+.action-button.delete:hover {
+    background-color: #e53935; /* Rojo más oscuro al pasar el mouse */
+}
+
+/* Estilo para el botón Editar */
+.action-button.edit {
+    background-color: #2196F3; /* Azul */
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-right: 5px;
+}
+
+.action-button.edit:hover {
+    background-color: #1e88e5; /* Azul más oscuro al pasar el mouse */
+}
+
+/* Estilo para el botón Guardar Cambios */
+#btn-guardar {
+    background-color: #4CAF50; /* Verde */
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 16px;
+    margin-top: 20px;
+    display: block; /* Asegura que el botón ocupe todo el ancho disponible */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#btn-guardar:hover {
+    background-color: #45a049; /* Verde más oscuro al pasar el mouse */
+}
+
 /* Responsividad */
 @media (max-width: 600px) {
     .tab button {
