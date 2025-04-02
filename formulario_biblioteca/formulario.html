@@ -18,30 +18,44 @@
     <button class="tablinks" onclick="openTab(event, 'Usuarios')">Usuarios</button>
   </div>
 
-  <!-- LIBROS -->
-  <div id="Libros" class="tabcontent">
-    <h2>Libros</h2>
-    <form id="form-libro"> <!-- Asegúrate de que el ID sea "form-libro" -->
-      <label>Título:</label> <input type="text" name="titulo" required><br>
-      <label>Autor:</label> <input type="text" name="autor" required><br>
-      <label>Número de Páginas:</label> <input type="number" name="paginas" required><br>
-      <label>Editorial:</label> <input type="text" name="editorial" required><br>
-      <input type="submit" value="Agregar Libro">
-    </form>
-    <h3>Lista de Libros</h3>
-    <table id="tabla-libros">
-      <thead>
-        <tr>
-          <th>Título</th>
-          <th>Autor</th>
-          <th>Páginas</th>
-          <th>Editorial</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+<!-- LIBROS -->
+<div id="Libros" class="tabcontent">
+  <h2>Libros</h2>
+  <form id="form-libro">
+    <label>Título:</label> <input type="text" name="titulo" required><br>
+    <label>Autor:</label> <input type="text" name="autor" required><br>
+    <label>Número de Páginas:</label> <input type="number" name="paginas" required><br>
+    <label>Editorial:</label> <input type="text" name="editorial" required><br>
+    <input type="submit" value="Agregar Libro">
+  </form>
+  
+  <!-- Filtros para libros -->
+  <div class="filtros">
+    <label>Filtrar por título:</label>
+    <input type="text" id="filtro-titulo" placeholder="Título del libro">
+    
+    <label>Filtrar por ID:</label>
+    <input type="text" id="filtro-id-libro" placeholder="ID del libro">
+    
+    <button onclick="filtrarLibros()">Filtrar</button>
+    <button onclick="resetFiltrosLibros()">Resetear</button>
   </div>
+
+  <h3>Lista de Libros</h3>
+  <table id="tabla-libros">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Título</th>
+        <th>Autor</th>
+        <th>Páginas</th>
+        <th>Editorial</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
   <!-- EJEMPLARES -->
   <div id="Ejemplares" class="tabcontent">
@@ -65,8 +79,8 @@
           <th>Número de Ejemplares</th>
           <th>ID del Libro</th>
           <th>Estado</th>
+          <th>ID ejemplar</th>
           <th>Acciones</th>
-          <th>Id</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -76,23 +90,59 @@
   <!-- HISTORIAL -->
   <div id="Historial" class="tabcontent">
     <h2>Historial</h2>
-    <form id="form-historial">
-      <label>Fecha de Entrega:</label> <input type="date" name="fecha_entrega" required><br>
-      <label>Estado del Libro:</label> <input type="text" name="estado_libro" required><br>
-      <label>ID Ejemplar:</label> <input type="text" name="id_ejemplar" required><br>
-      <label>ID Usuario:</label> <input type="text" name="id_usuario" required><br>
-      <label>ID Préstamo:</label> <input type="text" name="id_prestamo" required><br>
-      <input type="submit" value="Agregar Historial">
-    </form>
+
+      <!-- Indicador de carga  -->
+  <div id="loading-historial" style="display: none; text-align: center; padding: 10px;">
+    Cargando historial...
+  </div>
+    
+    <!-- Filtros para el historial -->
+    <div class="filtros-historial">
+      <label>Filtrar por acción:</label>
+      <select id="filtro-accion">
+        <option value="todos">Todos</option>
+        <option value="prestamo">Préstamos</option>
+        <option value="devolucion">Devoluciones</option>
+        <option value="reserva">Reservas</option>
+      </select>
+      
+      <label>Filtrar por usuario:</label>
+      <input type="text" id="filtro-usuario" placeholder="Nombre de usuario">
+      
+      <label>Filtrar por libro:</label>
+      <input type="text" id="filtro-libro" placeholder="Título del libro">
+      
+      <button onclick="filtrarHistorial()">Filtrar</button>
+    </div>
+    
+    <!-- Formulario para devoluciones (solo visible cuando sea necesario) -->
+    <div id="form-devolucion" style="display: none; margin-top: 20px; padding: 15px; background: #f5f5f5;">
+      <h3>Registrar Devolución</h3>
+      <form id="form-devolver">
+        <input type="hidden" id="devolucion-id-prestamo">
+        <label>Fecha de Entrega:</label> <input type="date" id="devolucion-fecha" required><br>
+        <label>Estado del Libro:</label>
+        <select id="devolucion-estado" required>
+          <option value="bueno">Bueno</option>
+          <option value="danado">Dañado</option>
+          <option value="perdido">Perdido</option>
+        </select><br>
+        <button type="submit">Registrar Devolución</button>
+      </form>
+    </div>
+  
     <h3>Lista de Historial</h3>
     <table id="tabla-historial">
       <thead>
         <tr>
-          <th>ID Ejemplar</th>
-          <th>ID Usuario</th>
-          <th>ID Préstamo</th>
-          <th>Fecha de Entrega</th>
-          <th>Estado del Libro</th>
+          <th>Acción</th>
+          <th>Fecha</th>
+          <th>Libro</th>
+          <th>Ejemplar</th>
+          <th>Usuario</th>
+          <th>Fecha Préstamo</th>
+          <th>Fecha Devolución</th>
+          <th>Estado Libro</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -100,114 +150,305 @@
     </table>
   </div>
 
-  <!-- PRÉSTAMOS -->
-  <div id="Prestamos" class="tabcontent">
-    <h2>Préstamos</h2>
-    <form id="form-prestamo">
-      <label>ID Ejemplar:</label> <input type="text" name="id_ejemplar" required><br>
-      <label>ID Usuario:</label> <input type="text" name="id_usuario" required><br>
-      <label>Fecha Recibido:</label> <input type="date" name="fecha_recibido" required><br>
-      <label>Fecha Debe Entregar:</label> <input type="date" name="fecha_debe_entregar" required><br>
-      <input type="submit" value="Agregar Préstamo">
-    </form>
-    <h3>Lista de Préstamos</h3>
-    <table id="tabla-prestamos">
-      <thead>
-        <tr>
-          <th>ID Ejemplar</th>
-          <th>ID Usuario</th>
-          <th>Fecha Recibido</th>
-          <th>Fecha Debe Entregar</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+<!-- PRÉSTAMOS -->
+<div id="Prestamos" class="tabcontent">
+  <h2>Préstamos</h2>
+  <form id="form-prestamo">
+    <label>ID Ejemplar:</label> <input type="text" name="id_ejemplar" required><br>
+    <label>ID Usuario:</label> <input type="text" name="id_usuario" required><br>
+    <label>Fecha Recibido:</label> <input type="date" name="fecha_recibido" required><br>
+    <label>Fecha Debe Entregar:</label> <input type="date" name="fecha_debe_entregar" required><br>
+    <input type="submit" value="Agregar Préstamo">
+  </form>
+  <h3>Lista de Préstamos</h3>
+  <table id="tabla-prestamos">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>ID Ejemplar</th>
+        <th>ID Usuario</th>
+        <th>Fecha Recibido</th>
+        <th>Fecha Debe Entregar</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- RESERVAS -->
+<div id="Reservas" class="tabcontent">
+  <h2>Reservas</h2>
+  <form id="form-reserva">
+    <label>ID del Usuario:</label> 
+    <input type="text" name="id_usuario" required><br>
+    <label>ID del Libro:</label> 
+    <input type="text" name="id_libro" required><br>
+    <label>Fecha de Solicitud:</label> 
+    <input type="date" name="fecha_solicitud" required><br>
+    <input type="submit" value="Agregar Reserva">
+  </form>
+  <h3>Lista de Reservas</h3>
+  <table id="tabla-reservas">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Usuario</th>
+        <th>Libro</th>
+        <th>Fecha Solicitud</th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- USUARIOS -->
+<div id="Usuarios" class="tabcontent">
+  <h2>Usuarios</h2>
+  <form id="form-usuario">
+    <label>Nombre:</label> <input type="text" name="nombre" required><br>
+    <label>Correo:</label> <input type="email" name="correo" required><br>
+    <label>Teléfono:</label> <input type="text" name="telefono" required><br>
+    <input type="submit" value="Agregar Usuario">
+  </form>
+  
+  <!-- Filtros para usuarios -->
+  <div class="filtros">
+    <label>Filtrar por nombre:</label>
+    <input type="text" id="filtro-nombre" placeholder="Nombre del usuario">
+    
+    <label>Filtrar por ID:</label>
+    <input type="text" id="filtro-id-usuario" placeholder="ID del usuario">
+    
+    <button onclick="filtrarUsuarios()">Filtrar</button>
+    <button onclick="resetFiltrosUsuarios()">Resetear</button>
   </div>
 
-  <!-- RESERVAS -->
-  <div id="Reservas" class="tabcontent">
-    <h2>Reservas</h2>
-    <form id="form-reserva">
-      <label>ID del Usuario:</label> <input type="text" name="id_usuario" required><br>
-      <label>ID del Libro:</label> <input type="text" name="id_libro" required><br>
-      <label>Fecha de Solicitud:</label> <input type="date" name="fecha_solicitud" required><br>
-      <input type="submit" value="Agregar Reserva">
-    </form>
-    <h3>Lista de Reservas</h3>
-    <table id="tabla-reservas">
-      <thead>
-        <tr>
-          <th>ID Usuario</th>
-          <th>ID del Libro</th>
-          <th>Fecha de Solicitud</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <!-- USUARIOS -->
-  <div id="Usuarios" class="tabcontent">
-    <h2>Usuarios</h2>
-    <form id="form-usuario">
-      <label>Nombre:</label> <input type="text" name="nombre" required><br>
-      <label>Correo:</label> <input type="email" name="correo" required><br>
-      <label>Teléfono:</label> <input type="text" name="telefono" required><br>
-      <input type="submit" value="Agregar Usuario">
-    </form>
-    <h3>Lista de Usuarios</h3>
-    <table id="tabla-usuarios">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Correo</th>
-          <th>Teléfono</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <h3>Lista de Usuarios</h3>
+  <table id="tabla-usuarios">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Correo</th>
+        <th>Teléfono</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
   <script>
-    const camposPorTab = {
-      "Libros": ["titulo", "autor", "paginas", "editorial"],
-      "Ejemplares": ["numero_ejemplar", "id_libro", "estado", "_id"],
-      "Usuarios": ["nombre", "correo", "telefono"],
-      "Prestamos": ["id_ejemplar", "id_usuario", "fecha_recibido", "fecha_debe_entregar"],
-      "Reservas": ["id_usuario", "id_libro", "fecha_solicitud"],
-      "Historial": ["id_ejemplar", "id_usuario", "id_prestamo", "fecha_entrega", "estado_libro"]
-    };
+  const camposPorTab = {
+    "Libros": ["_id", "titulo", "autor", "paginas", "editorial"],
+    "Ejemplares": ["numero_ejemplar", "id_libro", "estado", "_id"],
+    "Usuarios": ["_id", "nombre", "correo", "telefono"],
+    "Prestamos": ["id_ejemplar", "id_usuario", "fecha_recibido", "fecha_debe_entregar"],
+    "Reservas": ["id_usuario", "id_libro", "fecha_solicitud"],
+    "Historial": ["id_ejemplar", "id_usuario", "id_prestamo", "fecha_entrega", "estado_libro"]
+  };
   
     let modoEdicion = false;
     let idEdicion = null;
     let tabActual = "";
   
+
+    //la función openTab para cargar reservas correctamente
     function openTab(evt, tabName) {
-      const tabcontent = document.getElementsByClassName("tabcontent");
-      for (let i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-      }
-      const tablinks = document.getElementsByClassName("tablinks");
-      for (let i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-      }
-      document.getElementById(tabName).style.display = "block";
-      evt.currentTarget.className += " active";
-      tabActual = tabName;
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = "none";
+    }
+    const tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+    tabActual = tabName;
+    
+    if (tabName === 'Historial') {
+      cargarHistorial();
+    } else if (tabName === 'Reservas') {
+      cargarReservas();
+    } else {
       cargarDatos(tabName);
     }
-  
+  } 
+
+      // Función para filtrar libros
+  async function filtrarLibros() {
+    const titulo = document.getElementById('filtro-titulo').value;
+    const id = document.getElementById('filtro-id-libro').value;
+    
+    let url = 'http://localhost:5000/libros';
+    const filtros = {};
+    
+    if (titulo) filtros.titulo = titulo;
+    if (id) filtros._id = id;
+    
+    if (Object.keys(filtros).length > 0) {
+      const queryParams = new URLSearchParams(filtros).toString();
+      url += `?${queryParams}`;
+    }
+    
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      actualizarTablaLibros(data);
+    } catch (error) {
+      console.error('Error al filtrar libros:', error);
+    }
+  }
+
+    // Función para resetear filtros de libros
+    function resetFiltrosLibros() {
+    document.getElementById('filtro-titulo').value = '';
+    document.getElementById('filtro-id-libro').value = '';
+    cargarDatos('Libros');
+  }
+
+  // Función para actualizar la tabla de libros
+  function actualizarTablaLibros(libros) {
+    const tabla = document.getElementById('tabla-libros').getElementsByTagName('tbody')[0];
+    tabla.innerHTML = "";
+    
+    libros.forEach(libro => {
+      const row = tabla.insertRow();
+      
+      // ID
+      const cellId = row.insertCell();
+      cellId.textContent = libro._id;
+      
+      // Título
+      const cellTitulo = row.insertCell();
+      cellTitulo.textContent = libro.titulo;
+      
+      // Autor
+      const cellAutor = row.insertCell();
+      cellAutor.textContent = libro.autor;
+      
+      // Páginas
+      const cellPaginas = row.insertCell();
+      cellPaginas.textContent = libro.paginas;
+      
+      // Editorial
+      const cellEditorial = row.insertCell();
+      cellEditorial.textContent = libro.editorial;
+      
+      // Acciones
+      const cellAcciones = row.insertCell();
+      
+      // Botón eliminar
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Eliminar';
+      deleteButton.className = 'action-button delete';
+      deleteButton.onclick = () => eliminarItem('Libros', libro._id);
+      cellAcciones.appendChild(deleteButton);
+      
+      // Botón editar
+      const editButton = document.createElement('button');
+      editButton.textContent = 'Editar';
+      editButton.className = 'action-button edit';  
+      editButton.onclick = () => cargarFormularioParaEditar('Libros', libro);
+      cellAcciones.appendChild(editButton);
+    });
+  }
+
+    // Función para filtrar usuarios
+    async function filtrarUsuarios() {
+    const nombre = document.getElementById('filtro-nombre').value;
+    const id = document.getElementById('filtro-id-usuario').value;
+    
+    let url = 'http://localhost:5000/usuarios';
+    const filtros = {};
+    
+    if (nombre) filtros.nombre = nombre;
+    if (id) filtros._id = id;
+    
+    if (Object.keys(filtros).length > 0) {
+      const queryParams = new URLSearchParams(filtros).toString();
+      url += `?${queryParams}`;
+    }
+    
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      actualizarTablaUsuarios(data);
+    } catch (error) {
+      console.error('Error al filtrar usuarios:', error);
+    }
+  }
+
+    // Función para resetear filtros de usuarios
+    function resetFiltrosUsuarios() {
+    document.getElementById('filtro-nombre').value = '';
+    document.getElementById('filtro-id-usuario').value = '';
+    cargarDatos('Usuarios');
+  }
+
+    // Función para actualizar la tabla de usuarios
+    function actualizarTablaUsuarios(usuarios) {
+    const tabla = document.getElementById('tabla-usuarios').getElementsByTagName('tbody')[0];
+    tabla.innerHTML = "";
+    
+    usuarios.forEach(usuario => {
+      const row = tabla.insertRow();
+      
+      // ID
+      const cellId = row.insertCell();
+      cellId.textContent = usuario._id;
+      
+      // Nombre
+      const cellNombre = row.insertCell();
+      cellNombre.textContent = usuario.nombre;
+      
+      // Correo
+      const cellCorreo = row.insertCell();
+      cellCorreo.textContent = usuario.correo;
+      
+      // Teléfono
+      const cellTelefono = row.insertCell();
+      cellTelefono.textContent = usuario.telefono;
+      
+      // Acciones
+      const cellAcciones = row.insertCell();
+      
+      // Botón eliminar
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Eliminar';
+      deleteButton.className = 'action-button delete';
+      deleteButton.onclick = () => eliminarItem('Usuarios', usuario._id);
+      cellAcciones.appendChild(deleteButton);
+      
+      // Botón editar
+      const editButton = document.createElement('button');
+      editButton.textContent = 'Editar';
+      editButton.className = 'action-button edit';  
+      editButton.onclick = () => cargarFormularioParaEditar('Usuarios', usuario);
+      cellAcciones.appendChild(editButton);
+    });
+  }
+
+    // Modifica la función cargarDatos para usar las nuevas funciones de actualización
     async function cargarDatos(tabName) {
-      try {
-        const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}`);
-        const data = await response.json();
+    try {
+      const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}`);
+      const data = await response.json();
+      
+      if (tabName === 'Libros') {
+        actualizarTablaLibros(data);
+      } else if (tabName === 'Usuarios') {
+        actualizarTablaUsuarios(data);
+      } else {
+        // Resto del código original para otras tablas...
         const tabla = document.getElementById(`tabla-${tabName.toLowerCase()}`).getElementsByTagName('tbody')[0];
         tabla.innerHTML = "";
 
-        // campos que se van a mostrar
         const campos = camposPorTab[tabName] || Object.keys(data[0] || {});
         data.forEach(item => {
           const row = tabla.insertRow();
@@ -215,7 +456,7 @@
             const cell = row.insertCell();
             cell.textContent = item[campo] !== undefined ? item[campo] : "";
           });
-          // botón de eliminar
+          
           const cellAcciones = row.insertCell();
           const deleteButton = document.createElement('button');
           deleteButton.textContent = 'Eliminar';
@@ -223,17 +464,222 @@
           deleteButton.onclick = () => eliminarItem(tabName, item._id);
           cellAcciones.appendChild(deleteButton);
 
-          // boton de editar 
           const editButton = document.createElement('button');
           editButton.textContent = 'Editar';
           editButton.className = 'action-button edit';  
-          editButton.onclick = () => cargarFormularioParaEditar(tabName, item); // Llamar a la función aquí
+          editButton.onclick = () => cargarFormularioParaEditar(tabName, item);
           cellAcciones.appendChild(editButton);
         });
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
       }
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
     }
+  }
+  
+  async function cargarDatos(tabName) {
+  try {
+    const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}`);
+    const data = await response.json();
+    
+    if (tabName === 'Libros') {
+      actualizarTablaLibros(data);
+    } else if (tabName === 'Usuarios') {
+      actualizarTablaUsuarios(data);
+    } else if (tabName === 'Prestamos') {
+      actualizarTablaPrestamos(data);
+    } else if (tabName === 'Reservas') {
+      actualizarTablaReservas(data);
+    } else {
+      // Resto de tablas...
+      const tabla = document.getElementById(`tabla-${tabName.toLowerCase()}`).getElementsByTagName('tbody')[0];
+      tabla.innerHTML = "";
+
+      const campos = camposPorTab[tabName] || Object.keys(data[0] || {});
+      data.forEach(item => {
+        const row = tabla.insertRow();
+        campos.forEach(campo => {
+          const cell = row.insertCell();
+          cell.textContent = item[campo] !== undefined ? item[campo] : "";
+        });
+        
+        const cellAcciones = row.insertCell();
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Eliminar';
+        deleteButton.className = 'action-button delete';
+        deleteButton.onclick = () => eliminarItem(tabName, item._id);
+        cellAcciones.appendChild(deleteButton);
+
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Editar';
+        editButton.className = 'action-button edit';  
+        editButton.onclick = () => cargarFormularioParaEditar(tabName, item);
+        cellAcciones.appendChild(editButton);
+      });
+    }
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+  }
+}
+
+// Función para actualizar la tabla de préstamos
+function actualizarTablaPrestamos(prestamos) {
+  const tabla = document.getElementById('tabla-prestamos').getElementsByTagName('tbody')[0];
+  tabla.innerHTML = "";
+  
+  prestamos.forEach(prestamo => {
+    const row = tabla.insertRow();
+    
+    // ID
+    const cellId = row.insertCell();
+    cellId.textContent = prestamo._id;
+    
+    // ID Ejemplar
+    const cellEjemplar = row.insertCell();
+    cellEjemplar.textContent = prestamo.id_ejemplar;
+    
+    // ID Usuario
+    const cellUsuario = row.insertCell();
+    cellUsuario.textContent = prestamo.id_usuario;
+    
+    // Fechas
+    const cellFechaRecibido = row.insertCell();
+    cellFechaRecibido.textContent = prestamo.fecha_recibido;
+    
+    const cellFechaDevolucion = row.insertCell();
+    cellFechaDevolucion.textContent = prestamo.fecha_debe_entregar;
+    
+    // Estado
+    const cellEstado = row.insertCell();
+    cellEstado.textContent = prestamo.estado === 'borrowed' ? 'Prestado' : 'Devuelto';
+    
+    // Acciones
+    const cellAcciones = row.insertCell();
+    
+    // Botón eliminar
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Eliminar';
+    deleteButton.className = 'action-button delete';
+    deleteButton.onclick = () => eliminarItem('Prestamos', prestamo._id);
+    cellAcciones.appendChild(deleteButton);
+    
+    // Botón editar
+    const editButton = document.createElement('button');
+    editButton.textContent = 'Editar';
+    editButton.className = 'action-button edit';  
+    editButton.onclick = () => cargarFormularioParaEditar('Prestamos', prestamo);
+    cellAcciones.appendChild(editButton);
+    
+    // Botón devolver (solo si está prestado)
+    if (prestamo.estado === 'borrowed') {
+      const devolverButton = document.createElement('button');
+      devolverButton.textContent = 'Devolver';
+      devolverButton.className = 'action-button';
+      devolverButton.style.backgroundColor = '#4CAF50';
+      devolverButton.onclick = () => registrarDevolucion(prestamo._id);
+      cellAcciones.appendChild(devolverButton);
+    }
+  });
+}
+
+  // Función para actualizar la tabla de reservas
+  function actualizarTablaReservas(reservas) {
+    const tabla = document.getElementById('tabla-reservas').getElementsByTagName('tbody')[0];
+    tabla.innerHTML = "";
+    
+    reservas.forEach(reserva => {
+      const row = tabla.insertRow();
+      
+      // ID
+      const cellId = row.insertCell();
+      cellId.textContent = reserva._id;
+      
+      // Usuario
+      const cellUsuario = row.insertCell();
+      cellUsuario.textContent = reserva.usuario_nombre || reserva.id_usuario;
+      
+      // Libro
+      const cellLibro = row.insertCell();
+      cellLibro.textContent = reserva.libro_titulo || reserva.id_libro;
+      
+      // Fecha Solicitud
+      const cellFecha = row.insertCell();
+      cellFecha.textContent = new Date(reserva.fecha_solicitud).toLocaleDateString();
+      
+      // Estado
+      const cellEstado = row.insertCell();
+      cellEstado.textContent = reserva.estado === 'reserved' ? 'Reservado' : 'Completado';
+      
+      // Acciones
+      const cellAcciones = row.insertCell();
+      
+      // Botón eliminar
+      const deleteButton = document.createElement('button');
+      deleteButton.textContent = 'Eliminar';
+      deleteButton.className = 'action-button delete';
+      deleteButton.onclick = () => eliminarItem('Reservas', reserva._id);
+      cellAcciones.appendChild(deleteButton);
+      
+      // Botón editar
+      const editButton = document.createElement('button');
+      editButton.textContent = 'Editar';
+      editButton.className = 'action-button edit';  
+      editButton.onclick = () => cargarFormularioParaEditar('Reservas', reserva);
+      cellAcciones.appendChild(editButton);
+    });
+  }
+
+
+    // Event listener específico para el formulario de reservas
+    document.getElementById('form-reserva').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    try {
+      const response = await fetch('http://localhost:5000/add_reserva', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al agregar reserva');
+      }
+      
+      const result = await response.json();
+      this.reset();
+      await cargarReservas();
+      alert('Reserva agregada correctamente con ID: ' + result.id);
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error: ' + error.message);
+    }
+  });
+
+
+  // Función para cargar reservas con información relacionada
+async function cargarReservas() {
+    try {
+      const response = await fetch('http://localhost:5000/reservas_completas');
+      const data = await response.json();
+      actualizarTablaReservas(data);
+    } catch (error) {
+      console.error('Error al cargar reservas:', error);
+    }
+  }
+
+  function prepararDevolucion(idPrestamo) {
+    document.getElementById('form-devolucion').style.display = 'block';
+    document.getElementById('devolucion-id-prestamo').value = idPrestamo;
+    document.getElementById('devolucion-fecha').valueAsDate = new Date();
+    document.getElementById('devolucion-estado').value = 'bueno';
+    
+    // Scroll al formulario de devolución
+    document.getElementById('form-devolucion').scrollIntoView({
+        behavior: 'smooth'
+    });
+}
+
   
     async function eliminarItem(tabName, id) {
       try {
@@ -303,17 +749,239 @@
         }
       });
     }
+
+// Función para cargar el historial
+async function cargarHistorial(filtros = {}) {
+    try {
+        showLoading(true, 'Historial');
+        const tabla = document.getElementById('tabla-historial').getElementsByTagName('tbody')[0];
+        tabla.innerHTML = "";
+
+        let url = 'http://localhost:5000/historial';
+        const queryParams = new URLSearchParams(filtros).toString();
+        if (queryParams) url += `?${queryParams}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!Array.isArray(data)) {
+            throw new Error("Formato de datos inválido");
+        }
+
+        if (data.length === 0) {
+            const row = tabla.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 9;
+            cell.textContent = "No hay registros en el historial";
+            cell.className = "empty-message";
+            return;
+        }
+
+        data.forEach(item => {
+            const row = tabla.insertRow();
+            
+            // Acción
+            const cellAccion = row.insertCell();
+            cellAccion.textContent = item.accion || '-';
+            
+            // Fecha
+            const cellFecha = row.insertCell();
+            cellFecha.textContent = item.fecha || '-';
+            
+            // Libro
+            const cellLibro = row.insertCell();
+            cellLibro.textContent = item.libro || '-';
+            
+            // Ejemplar
+            const cellEjemplar = row.insertCell();
+            cellEjemplar.textContent = item.ejemplar || '-';
+            
+            // Usuario
+            const cellUsuario = row.insertCell();
+            cellUsuario.textContent = item.usuario || '-';
+            
+            // Fecha Préstamo
+            const cellFechaPrestamo = row.insertCell();
+            cellFechaPrestamo.textContent = item.fecha_prestamo || '-';
+            
+            // Fecha Devolución
+            const cellFechaDevolucion = row.insertCell();
+            cellFechaDevolucion.textContent = item.fecha_devolucion || '-';
+            
+            // Estado Libro
+            const cellEstadoLibro = row.insertCell();
+            cellEstadoLibro.textContent = item.estado_libro || '-';
+            
+            // Acciones
+            const cellAcciones = row.insertCell();
+            if (item.accion === 'Préstamo' && item.fecha_devolucion === '-') {
+                const devolverBtn = document.createElement('button');
+                devolverBtn.textContent = 'Devolver';
+                devolverBtn.className = 'action-button';
+                devolverBtn.style.backgroundColor = '#4CAF50';
+                devolverBtn.onclick = () => prepararDevolucion(item._id);
+                cellAcciones.appendChild(devolverBtn);
+            }
+        });
+    } catch (error) {
+        console.error('Error al cargar historial:', error);
+        const tabla = document.getElementById('tabla-historial').getElementsByTagName('tbody')[0];
+        tabla.innerHTML = "";
+        const row = tabla.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 9;
+        cell.textContent = `Error al cargar el historial: ${error.message}`;
+        cell.style.color = "red";
+        cell.style.textAlign = "center";
+    } finally {
+        showLoading(false, 'Historial');
+    }
+}
+
+function showLoading(show, tab = null) {
+    const loadingId = tab ? `loading-${tab.toLowerCase()}` : 'loading-historial';
+    const loadingElement = document.getElementById(loadingId);
+    
+    if (loadingElement) {
+        loadingElement.style.display = show ? 'block' : 'none';
+    }
+}
+
+
+// Función para registrar devolución
+async function registrarDevolucion(idPrestamo) {
+    try {
+        // Mostrar loading específico para préstamos
+        showLoading(true, 'Prestamos');
+        
+        const fechaActual = new Date().toISOString().split('T')[0];
+        const estadoLibro = document.getElementById('devolucion-estado').value;
+        
+        const response = await fetch(`http://localhost:5000/devolver_prestamo/${idPrestamo}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `fecha_entrega=${encodeURIComponent(fechaActual)}&estado_libro=${encodeURIComponent(estadoLibro)}`
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al registrar devolución');
+        }
+        
+        // Ocultar formulario de devolución
+        document.getElementById('form-devolucion').style.display = 'none';
+        
+        // Recargar datos
+        await cargarDatos('Prestamos');
+        await cargarHistorial();
+        
+        alert('Devolución registrada correctamente');
+    } catch (error) {
+        console.error('Error al registrar devolución:', error);
+        alert('Error: ' + error.message);
+    } finally {
+        // Ocultar loading
+        showLoading(false, 'Prestamos');
+    }
+}
+
+
+  // Función para preparar el formulario de devolución
+  function prepararDevolucion(idPrestamo) {
+    document.getElementById('form-devolucion').style.display = 'block';
+    document.getElementById('devolucion-id-prestamo').value = idPrestamo;
+    document.getElementById('devolucion-fecha').valueAsDate = new Date();
+  }
+
+  // Función para filtrar el historial
+  function filtrarHistorial() {
+    const filtros = {
+      accion: document.getElementById('filtro-accion').value !== 'todos' ? 
+              document.getElementById('filtro-accion').value : undefined,
+      usuario: document.getElementById('filtro-usuario').value || undefined,
+      libro: document.getElementById('filtro-libro').value || undefined
+    };
+    
+    // Eliminar filtros vacíos
+    Object.keys(filtros).forEach(key => filtros[key] === undefined && delete filtros[key]);
+    
+    cargarHistorial(filtros);
+  }
+
+  // Manejar el formulario de devolución
+  document.getElementById('form-devolver').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const idPrestamo = document.getElementById('devolucion-id-prestamo').value;
+    const fecha = document.getElementById('devolucion-fecha').value;
+    const estado = document.getElementById('devolucion-estado').value;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/devolver_prestamo/${idPrestamo}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `fecha_entrega=${encodeURIComponent(fecha)}&estado_libro=${encodeURIComponent(estado)}`
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al registrar devolución');
+      }
+      
+      alert('Devolución registrada correctamente');
+      document.getElementById('form-devolver').reset();
+      document.getElementById('form-devolucion').style.display = 'none';
+      cargarHistorial();
+    } catch (error) {
+      console.error('Error:', error);
+      alert(error.message);
+    }
+  });
+
+  // Actualizar la función openTab para cargar el historial correctamente
+  function openTab(evt, tabName) {
+    const tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+      tabcontent[i].style.display = "none";
+    }
+    const tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+      tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+    tabActual = tabName;
+    
+    if (tabName === 'Historial') {
+      cargarHistorial();
+    } else {
+      cargarDatos(tabName);
+    }
+  }
+
+  // Asegúrate de que el historial se cargue correctamente al abrir la pestaña
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelector(".tablinks").click();
+  });
   
-    sendForm("form-libro", "http://localhost:5000/add_libro", "Libros");
-    sendForm("form-ejemplar", "http://localhost:5000/add_ejemplar", "Ejemplares");
-    sendForm("form-historial", "http://localhost:5000/add_historial", "Historial");
-    sendForm("form-prestamo", "http://localhost:5000/add_prestamo", "Prestamos");
-    sendForm("form-reserva", "http://localhost:5000/add_reserva", "Reservas");
-    sendForm("form-usuario", "http://localhost:5000/add_usuario", "Usuarios");
+  sendForm("form-libro", "http://localhost:5000/add_libro", "Libros");
+  sendForm("form-ejemplar", "http://localhost:5000/add_ejemplar", "Ejemplares");
+  sendForm("form-usuario", "http://localhost:5000/add_usuario", "Usuarios");
+  sendForm("form-prestamo", "http://localhost:5000/add_prestamo", "Prestamos");
+  // No usamos sendForm para reservas porque tenemos un manejo especial
   
-    document.addEventListener("DOMContentLoaded", () => {
-      document.querySelector(".tablinks").click();
-    });
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelector(".tablinks").click();
+  });
   </script>
 </body>
 </html>
