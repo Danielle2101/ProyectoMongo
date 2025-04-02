@@ -2,35 +2,58 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+import datetime
 
 app = Flask(__name__)
-CORS(app)  # Habilita CORS para todas las rutas
+CORS(app)
+
 
 client = MongoClient('mongodb://localhost:27017/')
 db = client['biblioteca']
+
+try:
+    client.admin.command('ping')
+    print("✅ Conectado a MongoDB")
+except Exception as e:
+    print("❌ Error conectando a MongoDB:", e)
+    raise e
 
 @app.route('/')
 def index():
     return "¡Bienvenido a la gestión de la biblioteca!"
 
-
 # ------------------- FUNCIONES AUXILIARES -------------------
 
 def parse_object_id(data, field):
-    """Convierte a ObjectId si es válido, sino lanza error"""
     try:
         return ObjectId(data[field])
     except:
         raise ValueError(f"ID inválido para el campo '{field}'")
 
 def convert_ids(document):
-    """Convierte ObjectId en string para cualquier documento"""
     document['_id'] = str(document['_id'])
     for key in ['id_usuario', 'id_ejemplar', 'id_libro', 'id_prestamo']:
         if key in document:
             document[key] = str(document[key])
     return document
 
+def registrar_historial(accion, id_ejemplar=None, id_usuario=None, id_prestamo=None, id_libro=None, datos_adicionales=None):
+    registro = {
+        "accion": accion,
+        "fecha": datetime.datetime.now(),
+        "datos_adicionales": datos_adicionales or {}
+    }
+    
+    if id_ejemplar:
+        registro["id_ejemplar"] = str(id_ejemplar)
+    if id_usuario:
+        registro["id_usuario"] = str(id_usuario)
+    if id_prestamo:
+        registro["id_prestamo"] = str(id_prestamo)
+    if id_libro:
+        registro["id_libro"] = str(id_libro)
+    
+    db.historial.insert_one(registro)
 
 # ------------------- ENDPOINTS POST -------------------
 
@@ -86,31 +109,91 @@ def add_prestamo():
         id_ejemplar = parse_object_id(data, 'id_ejemplar')
         id_usuario = parse_object_id(data, 'id_usuario')
 
+        # 1. Verificar que el ejemplar existe
+        ejemplar = db.ejemplares.find_one({"_id": id_ejemplar})
+        if not ejemplar:
+            return jsonify({"error": "Ejemplar no encontrado"}), 404
+
+        # 2. Validar disponibilidad del ejemplar (CORRECCIÓN IMPORTANTE)
+        if ejemplar.get('estado') not in ['available', 'disponible', 'reservado']:
+            return jsonify({
+                "error": "Ejemplar no disponible para préstamo",
+                "estado_actual": ejemplar.get('estado')
+            }), 400
+
+        # 3. Crear el préstamo
         prestamo = {
             "id_ejemplar": str(id_ejemplar),
             "id_usuario": str(id_usuario),
             "fecha_recibido": data['fecha_recibido'],
-            "fecha_entrega": None,
             "fecha_debe_entregar": data['fecha_debe_entregar'],
             "estado": "borrowed"
         }
 
-        prestamo_id = db.prestamos.insert_one(prestamo).inserted_id
-
+        # 4. Actualizar estado del ejemplar
         db.ejemplares.update_one(
             {"_id": id_ejemplar},
             {"$set": {"estado": "borrowed"}}
         )
 
-        db.usuarios.update_one(
-            {"_id": id_usuario},
-            {"$push": {"prestamos_activos": {
-                "id_ejemplar": str(id_ejemplar),
+        prestamo_id = db.prestamos.insert_one(prestamo).inserted_id
+        
+        registrar_historial(
+            accion="prestamo",
+            id_ejemplar=id_ejemplar,
+            id_usuario=id_usuario,
+            id_prestamo=prestamo_id,
+            datos_adicionales={
+                "fecha_recibido": data['fecha_recibido'],
                 "fecha_debe_entregar": data['fecha_debe_entregar']
-            }}}
+            }
         )
 
-        return jsonify({"message": "Préstamo agregado correctamente", "id": str(prestamo_id)}), 201
+        return jsonify({
+            "message": "Préstamo registrado correctamente",
+            "id": str(prestamo_id)
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route('/devolver_prestamo/<id_prestamo>', methods=['POST'])
+def devolver_prestamo(id_prestamo):
+    try:
+        data = request.form
+        prestamo = db.prestamos.find_one({"_id": ObjectId(id_prestamo)})
+        
+        if not prestamo:
+            return jsonify({"error": "Préstamo no encontrado"}), 404
+
+        # Actualizar préstamo
+        db.prestamos.update_one(
+            {"_id": ObjectId(id_prestamo)},
+            {"$set": {
+                "fecha_entrega": data['fecha_entrega'],
+                "estado": "returned"
+            }}
+        )
+
+        # Actualizar ejemplar
+        db.ejemplares.update_one(
+            {"_id": ObjectId(prestamo['id_ejemplar'])},
+            {"$set": {"estado": "available"}}
+        )
+
+        # Registrar en historial
+        registrar_historial(
+            accion="devolucion",
+            id_ejemplar=prestamo['id_ejemplar'],
+            id_usuario=prestamo['id_usuario'],
+            id_prestamo=id_prestamo,
+            datos_adicionales={
+                "fecha_entrega": data['fecha_entrega'],
+                "estado_libro": data.get('estado_libro', 'bueno')
+            }
+        )
+
+        return jsonify({"message": "Devolución registrada correctamente"}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -120,24 +203,43 @@ def add_reserva():
     try:
         data = request.form
         id_usuario = parse_object_id(data, 'id_usuario')
-        reserva = {
-            "id_usuario": str(id_usuario),
-            "id_libro": data['id_libro'],
-            "estado": "reserved",
-            "fecha_solicitud": data['fecha_solicitud']
-        }
+        id_libro = parse_object_id(data, 'id_libro')
 
-        reserva_id = db.reservas.insert_one(reserva).inserted_id
+        # Buscar un ejemplar disponible de este libro
+        ejemplar = db.ejemplares.find_one({
+            "id_libro": str(id_libro),
+            "estado": "available"
+        })
 
-        db.usuarios.update_one(
-            {"_id": id_usuario},
-            {"$push": {"reservas_activas": {
-                "id_reserva": str(reserva_id),
-                "fecha_reserva": data['fecha_solicitud']
-            }}}
+        if not ejemplar:
+            return jsonify({"error": "No hay ejemplares disponibles"}), 400
+
+        # Marcar ejemplar como reservado
+        db.ejemplares.update_one(
+            {"_id": ejemplar['_id']},
+            {"$set": {"estado": "reserved"}}
         )
 
-        return jsonify({"message": "Reserva agregada correctamente", "id": str(reserva_id)}), 201
+        reserva = {
+            "id_usuario": str(id_usuario),
+            "id_libro": str(id_libro),
+            "id_ejemplar": str(ejemplar['_id']),
+            "fecha_solicitud": data['fecha_solicitud'],
+            "estado": "pending"
+        }
+
+        registrar_historial(
+            accion="reserva",
+            id_usuario=id_usuario,
+            id_libro=id_libro,
+            id_ejemplar=ejemplar['_id'],
+            datos_adicionales={
+                "fecha_solicitud": data['fecha_solicitud']
+            }
+        )
+
+        reserva_id = db.reservas.insert_one(reserva).inserted_id
+        return jsonify({"message": "Reserva creada", "id": str(reserva_id)}), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -158,13 +260,27 @@ def add_historial():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-
 # ------------------- ENDPOINTS GET -------------------
 
 @app.route('/libros', methods=['GET'])
 def get_libros():
-    libros = list(db.libros.find())
-    return jsonify([convert_ids(libro) for libro in libros]), 200
+    try:
+        filtros = {}
+        titulo = request.args.get('titulo')
+        if titulo:
+            filtros['titulo'] = {'$regex': titulo, '$options': 'i'}
+            
+        id_libro = request.args.get('_id')
+        if id_libro:
+            try:
+                filtros['_id'] = ObjectId(id_libro)
+            except:
+                return jsonify({"error": "ID de libro inválido"}), 400
+        
+        libros = list(db.libros.find(filtros))
+        return jsonify([convert_ids(libro) for libro in libros]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/ejemplares', methods=['GET'])
 def get_ejemplares():
@@ -173,8 +289,23 @@ def get_ejemplares():
 
 @app.route('/usuarios', methods=['GET'])
 def get_usuarios():
-    usuarios = list(db.usuarios.find())
-    return jsonify([convert_ids(usuario) for usuario in usuarios]), 200
+    try:
+        filtros = {}
+        nombre = request.args.get('nombre')
+        if nombre:
+            filtros['nombre'] = {'$regex': nombre, '$options': 'i'}
+            
+        id_usuario = request.args.get('_id')
+        if id_usuario:
+            try:
+                filtros['_id'] = ObjectId(id_usuario)
+            except:
+                return jsonify({"error": "ID de usuario inválido"}), 400
+        
+        usuarios = list(db.usuarios.find(filtros))
+        return jsonify([convert_ids(usuario) for usuario in usuarios]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/prestamos', methods=['GET'])
 def get_prestamos():
@@ -188,9 +319,51 @@ def get_reservas():
 
 @app.route('/historial', methods=['GET'])
 def get_historial():
-    historial = list(db.historial.find())
-    return jsonify([convert_ids(item) for item in historial]), 200
-
+    try:
+        # Primero obtenemos los datos sin agregación compleja
+        historial_crudo = list(db.historial.find().sort("fecha", -1).limit(100))
+        
+        resultados = []
+        for item in historial_crudo:
+            try:
+                # Convertir fecha si es necesario
+                if isinstance(item['fecha'], str):
+                    fecha = datetime.datetime.fromisoformat(item['fecha'])
+                else:
+                    fecha = item['fecha']
+                
+                # Obtener datos relacionados manualmente
+                ejemplar = db.ejemplares.find_one({"_id": ObjectId(item.get('id_ejemplar', ''))}) or {}
+                libro = db.libros.find_one({"_id": ObjectId(ejemplar.get('id_libro', ''))}) or {}
+                usuario = db.usuarios.find_one({"_id": ObjectId(item.get('id_usuario', ''))}) or {}
+                
+                # Formatear resultado
+                resultado = {
+                    "_id": str(item['_id']),
+                    "accion": {
+                        "prestamo": "Préstamo",
+                        "devolucion": "Devolución",
+                        "reserva": "Reserva"
+                    }.get(item.get('accion'), item.get('accion', '-')),
+                    "fecha": fecha.strftime("%d/%m/%Y %H:%M:%S"),
+                    "libro": libro.get('titulo', '-'),
+                    "ejemplar": ejemplar.get('numero_ejemplar', '-'),
+                    "usuario": usuario.get('nombre', '-'),
+                    "fecha_prestamo": item.get('datos_adicionales', {}).get('fecha_recibido', '-'),
+                    "fecha_devolucion": item.get('datos_adicionales', {}).get('fecha_entrega', '-'),
+                    "estado_libro": item.get('datos_adicionales', {}).get('estado_libro', '-')
+                }
+                resultados.append(resultado)
+                
+            except Exception as e:
+                print(f"Error procesando documento {item.get('_id')}: {str(e)}")
+                continue
+        
+        return jsonify(resultados), 200
+        
+    except Exception as e:
+        print(f"Error en /historial: {str(e)}")
+        return jsonify({"error": "Error al procesar el historial", "detalle": str(e)}), 500
 
 @app.route('/<coleccion>/<id>', methods=['GET'])
 def get_documento(coleccion, id):
@@ -206,7 +379,6 @@ def get_documento(coleccion, id):
         return jsonify(convert_ids(documento)), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
 
 # ------------------- ENDPOINTS DELETE -------------------
 
@@ -227,9 +399,7 @@ def delete_documento(coleccion, id):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-
 # ------------------- ENDPOINT PUT (EDITAR) -------------------
-
 
 @app.route('/<coleccion>/<id>', methods=['PUT'])
 def editar_documento(coleccion, id):
@@ -238,7 +408,7 @@ def editar_documento(coleccion, id):
         if coleccion not in colecciones_validas:
             return jsonify({"error": "Colección inválida"}), 400
 
-        data = request.json  # JSON con los campos a actualizar
+        data = request.json
         if not data:
             return jsonify({"error": "No se proporcionaron datos para actualizar"}), 400
 
@@ -248,15 +418,26 @@ def editar_documento(coleccion, id):
         )
 
         if resultado.matched_count:
+            if coleccion == 'prestamos' and 'estado' in data and data['estado'] == 'returned':
+                prestamo = db.prestamos.find_one({"_id": ObjectId(id)})
+                if prestamo:
+                    registrar_historial(
+                        accion="devolucion",
+                        id_ejemplar=prestamo['id_ejemplar'],
+                        id_usuario=prestamo['id_usuario'],
+                        id_prestamo=id,
+                        datos_adicionales={
+                            "fecha_entrega": data.get('fecha_entrega', datetime.datetime.now().isoformat()),
+                            "estado_libro": data.get('estado_libro', 'bueno')
+                        }
+                    )
+            
             return jsonify({"message": f"{coleccion.capitalize()} actualizado correctamente"}), 200
         else:
             return jsonify({"message": f"{coleccion.capitalize()} no encontrado"}), 404
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-
-# ------------------- INICIO DE LA APP -------------------
 
 if __name__ == '__main__':
     app.run(debug=True)
