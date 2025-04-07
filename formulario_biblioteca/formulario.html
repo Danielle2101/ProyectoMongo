@@ -57,35 +57,36 @@
   </table>
 </div>
 
-  <!-- EJEMPLARES -->
-  <div id="Ejemplares" class="tabcontent">
-    <h2>Ejemplares</h2>
-    <form id="form-ejemplar">
-      <label>Número de Ejemplares:</label> 
-      <input type="text" name="numero_ejemplar" required><br>
-      <label>ID del Libro:</label> 
-      <input type="text" name="id_libro" required><br>
-      <label>Estado:</label>
-      <select name="estado">
-        <option value="available">Disponible</option>
-        <option value="borrowed">Prestado</option>
-      </select><br>
-      <input type="submit" value="Agregar Ejemplar">
-    </form>
-    <h3>Lista de Ejemplares</h3>
-    <table id="tabla-ejemplares">
-      <thead>
-        <tr>
-          <th>Número de Ejemplares</th>
-          <th>ID del Libro</th>
-          <th>Estado</th>
-          <th>ID ejemplar</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<!-- EJEMPLARES -->
+<div id="Ejemplares" class="tabcontent">
+  <h2>Ejemplares</h2>
+  <form id="form-ejemplar">
+    <label>Número de Ejemplares:</label> 
+    <input type="text" name="numero_ejemplar" required><br>
+    <label>ID del Libro:</label> 
+    <input type="text" name="id_libro" required><br>
+    <label>Estado:</label>
+    <select name="estado">
+      <option value="available">Disponible</option>
+      <option value="borrowed">Prestado</option>
+    </select><br>
+    <input type="submit" value="Agregar Ejemplar">
+  </form>
+  <h3>Lista de Ejemplares</h3>
+  <table id="tabla-ejemplares">
+    <thead>
+      <tr>
+        <th>Número de Ejemplar</th>
+        <th>ID del Libro</th>
+        <th>Nombre del Libro</th>
+        <th>Estado</th>
+        <th>ID Ejemplar</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
   <!-- HISTORIAL -->
   <div id="Historial" class="tabcontent">
@@ -189,20 +190,7 @@
     <input type="date" name="fecha_solicitud" required><br>
     <input type="submit" value="Agregar Reserva">
   </form>
-  <h3>Lista de Reservas</h3>
-  <table id="tabla-reservas">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Usuario</th>
-        <th>Libro</th>
-        <th>Fecha Solicitud</th>
-        <th>Estado</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <!-- Eliminada la tabla de reservas -->
 </div>
 
 <!-- USUARIOS -->
@@ -235,6 +223,8 @@
         <th>Nombre</th>
         <th>Correo</th>
         <th>Teléfono</th>
+        <th>numero reservas</th>
+        <th>Reserva</th>
         <th>Acciones</th>
       </tr>
     </thead>
@@ -397,86 +387,48 @@
     tabla.innerHTML = "";
     
     usuarios.forEach(usuario => {
-      const row = tabla.insertRow();
-      
-      // ID
-      const cellId = row.insertCell();
-      cellId.textContent = usuario._id;
-      
-      // Nombre
-      const cellNombre = row.insertCell();
-      cellNombre.textContent = usuario.nombre;
-      
-      // Correo
-      const cellCorreo = row.insertCell();
-      cellCorreo.textContent = usuario.correo;
-      
-      // Teléfono
-      const cellTelefono = row.insertCell();
-      cellTelefono.textContent = usuario.telefono;
-      
-      // Acciones
-      const cellAcciones = row.insertCell();
-      
-      // Botón eliminar
-      const deleteButton = document.createElement('button');
-      deleteButton.textContent = 'Eliminar';
-      deleteButton.className = 'action-button delete';
-      deleteButton.onclick = () => eliminarItem('Usuarios', usuario._id);
-      cellAcciones.appendChild(deleteButton);
-      
-      // Botón editar
-      const editButton = document.createElement('button');
-      editButton.textContent = 'Editar';
-      editButton.className = 'action-button edit';  
-      editButton.onclick = () => cargarFormularioParaEditar('Usuarios', usuario);
-      cellAcciones.appendChild(editButton);
+        const row = tabla.insertRow();
+        
+        // ID
+        const cellId = row.insertCell();
+        cellId.textContent = usuario._id;
+        
+        // Nombre
+        const cellNombre = row.insertCell();
+        cellNombre.textContent = usuario.nombre;
+        
+        // Correo
+        const cellCorreo = row.insertCell();
+        cellCorreo.textContent = usuario.correo;
+        
+        // Teléfono
+        const cellTelefono = row.insertCell();
+        cellTelefono.textContent = usuario.telefono;
+        
+        // Estado de Reserva
+        const cellReserva = row.insertCell();
+        cellReserva.textContent = usuario.tiene_reserva ? 'Con reserva' : 'Sin reserva';
+        
+        // Acciones
+        const cellAcciones = row.insertCell();
+        
+        // Botón eliminar
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Eliminar';
+        deleteButton.className = 'action-button delete';
+        deleteButton.onclick = () => eliminarItem('Usuarios', usuario._id);
+        cellAcciones.appendChild(deleteButton);
+        
+        // Botón editar
+        const editButton = document.createElement('button');
+        editButton.textContent = 'Editar';
+        editButton.className = 'action-button edit';  
+        editButton.onclick = () => cargarFormularioParaEditar('Usuarios', usuario);
+        cellAcciones.appendChild(editButton);
     });
-  }
+}
 
-    // Modifica la función cargarDatos para usar las nuevas funciones de actualización
-    async function cargarDatos(tabName) {
-    try {
-      const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}`);
-      const data = await response.json();
-      
-      if (tabName === 'Libros') {
-        actualizarTablaLibros(data);
-      } else if (tabName === 'Usuarios') {
-        actualizarTablaUsuarios(data);
-      } else {
-        // Resto del código original para otras tablas...
-        const tabla = document.getElementById(`tabla-${tabName.toLowerCase()}`).getElementsByTagName('tbody')[0];
-        tabla.innerHTML = "";
-
-        const campos = camposPorTab[tabName] || Object.keys(data[0] || {});
-        data.forEach(item => {
-          const row = tabla.insertRow();
-          campos.forEach(campo => {
-            const cell = row.insertCell();
-            cell.textContent = item[campo] !== undefined ? item[campo] : "";
-          });
-          
-          const cellAcciones = row.insertCell();
-          const deleteButton = document.createElement('button');
-          deleteButton.textContent = 'Eliminar';
-          deleteButton.className = 'action-button delete';
-          deleteButton.onclick = () => eliminarItem(tabName, item._id);
-          cellAcciones.appendChild(deleteButton);
-
-          const editButton = document.createElement('button');
-          editButton.textContent = 'Editar';
-          editButton.className = 'action-button edit';  
-          editButton.onclick = () => cargarFormularioParaEditar(tabName, item);
-          cellAcciones.appendChild(editButton);
-        });
-      }
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-    }
-  }
-  
-  async function cargarDatos(tabName) {
+async function cargarDatos(tabName) {
   try {
     const response = await fetch(`http://localhost:5000/${tabName.toLowerCase()}`);
     const data = await response.json();
@@ -489,6 +441,10 @@
       actualizarTablaPrestamos(data);
     } else if (tabName === 'Reservas') {
       actualizarTablaReservas(data);
+    } else if (tabName === 'Ejemplares') {
+      actualizarTablaEjemplares(data);
+    } else if (tabName === 'Historial') {
+      actualizarTablaHistorial(data);
     } else {
       // Resto de tablas...
       const tabla = document.getElementById(`tabla-${tabName.toLowerCase()}`).getElementsByTagName('tbody')[0];
@@ -520,6 +476,7 @@
     console.error('Error al cargar datos:', error);
   }
 }
+
 
 // Función para actualizar la tabla de préstamos
 function actualizarTablaPrestamos(prestamos) {
@@ -635,26 +592,28 @@ function actualizarTablaPrestamos(prestamos) {
     
     const formData = new FormData(this);
     try {
-      const response = await fetch('http://localhost:5000/add_reserva', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al agregar reserva');
-      }
-      
-      const result = await response.json();
-      this.reset();
-      await cargarReservas();
-      alert('Reserva agregada correctamente con ID: ' + result.id);
-      
+        const response = await fetch('http://localhost:5000/add_reserva', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al agregar reserva');
+        }
+        
+        const result = await response.json();
+        this.reset();
+        alert('Reserva agregada correctamente');
+        
+        // Actualizar la lista de usuarios para reflejar el cambio
+        cargarDatos('Usuarios');
+        
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error: ' + error.message);
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
     }
-  });
+});
 
 
   // Función para cargar reservas con información relacionada
