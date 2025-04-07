@@ -20,7 +20,7 @@ except Exception as e:
 
 @app.route('/')
 def index():
-    return "¡Bienvenido a la gestión de la biblioteca!"
+    return ('formulario.html')
 
 # ------------------- FUNCIONES AUXILIARES -------------------
 
@@ -220,6 +220,12 @@ def add_reserva():
             {"$set": {"estado": "reserved"}}
         )
 
+        # Actualizar el estado del usuario
+        db.usuarios.update_one(
+            {"_id": id_usuario},
+            {"$set": {"tiene_reserva": True}}
+        )
+
         reserva = {
             "id_usuario": str(id_usuario),
             "id_libro": str(id_libro),
@@ -243,6 +249,7 @@ def add_reserva():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+    
 
 @app.route('/add_historial', methods=['POST'])
 def add_historial():
