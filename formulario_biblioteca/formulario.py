@@ -285,5 +285,339 @@ def add_prestamo():
             cursor.close()
             connection.close()
 
+@app.route('/devolver_prestamo/<id_prestamo>', methods=['POST'])
+def devolver_prestamo(id_prestamo):
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        data = request.form
+        estado_libro = data.get('estado_libro', 'bueno')
+        
+        connection.start_transaction()
+        cursor = connection.cursor(dictionary=True)
+        
+        cursor.execute("""
+        SELECT p.*, e.id_libro, e.titulo_libro, u.nombre as nombre_usuario
+        FROM prestamos p
+        JOIN ejemplares e ON p.id_ejemplar = e.id
+        JOIN usuarios u ON p.id_usuario = u.id
+        WHERE p.id = %s
+        """, (int(id_prestamo),))
+        prestamo = cursor.fetchone()
+        
+        if not prestamo:
+            connection.rollback()
+            return jsonify({"error": "Préstamo no encontrado"}), 404
+
+        if prestamo['estado'] == 'returned':
+            connection.rollback()
+            return jsonify({"error": "El préstamo ya fue devuelto"}), 400
+
+        cursor.execute("""
+        UPDATE ejemplares 
+        SET ejemplares_prestados = ejemplares_prestados - 1, 
+            estado = 'available' 
+        WHERE id = %s
+        """, (prestamo['id_ejemplar'],))
+
+        cursor.execute("""
+        UPDATE usuarios 
+        SET ejemplares_prestados = ejemplares_prestados - 1 
+        WHERE id = %s
+        """, (prestamo['id_usuario'],))
+
+        fecha_entrega = datetime.datetime.now().strftime("%Y-%m-%d")
+        cursor.execute("""
+        UPDATE prestamos 
+        SET estado = 'returned', 
+            fecha_entrega = %s, 
+            estado_libro = %s 
+        WHERE id = %s
+        """, (fecha_entrega, estado_libro, int(id_prestamo)))
+        
+        connection.commit()
+
+        registrar_historial(
+            accion="devolucion",
+            id_ejemplar=prestamo['id_ejemplar'],
+            id_usuario=prestamo['id_usuario'],
+            id_prestamo=id_prestamo,
+            id_libro=prestamo['id_libro'],
+            datos_adicionales={
+                "estado_libro": estado_libro,
+                "fecha_entrega": fecha_entrega,
+                "titulo_libro": prestamo['titulo_libro'],
+                "nombre_usuario": prestamo['nombre_usuario']
+            }
+        )
+
+        return jsonify({"message": "Devolución registrada correctamente"}), 200
+
+    except ValueError as e:
+        connection.rollback()
+        return jsonify({"error": "ID de préstamo inválido"}), 400
+    except Error as e:
+        connection.rollback()
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/add_reserva', methods=['POST'])
+def add_reserva():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        data = request.form
+        id_usuario = int(data['id_usuario'])
+        id_libro = int(data['id_libro'])
+        
+        connection.start_transaction()
+        cursor = connection.cursor(dictionary=True)
+        
+        cursor.execute("""
+        SELECT * FROM usuarios 
+        WHERE id = %s AND tiene_reserva = FALSE
+        """, (id_usuario,))
+        usuario = cursor.fetchone()
+        
+        if not usuario:
+            connection.rollback()
+            return jsonify({"error": "Usuario no encontrado o ya tiene una reserva activa"}), 400
+
+        cursor.execute("""
+        SELECT e.*, l.titulo as titulo_libro
+        FROM ejemplares e
+        JOIN libros l ON e.id_libro = l.id
+        WHERE e.id_libro = %s AND e.estado = 'available'
+        LIMIT 1
+        """, (id_libro,))
+        ejemplar = cursor.fetchone()
+
+        if not ejemplar:
+            connection.rollback()
+            return jsonify({"error": "No hay ejemplares disponibles"}), 400
+
+        cursor.execute("""
+        UPDATE ejemplares 
+        SET estado = 'reserved' 
+        WHERE id = %s
+        """, (ejemplar['id'],))
+
+        cursor.execute("""
+        UPDATE usuarios 
+        SET tiene_reserva = TRUE 
+        WHERE id = %s
+        """, (id_usuario,))
+
+        query = """
+        INSERT INTO reservas 
+        (id_usuario, id_libro, id_ejemplar, fecha_solicitud, estado)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            id_usuario,
+            id_libro,
+            ejemplar['id'],
+            format_date(data['fecha_solicitud']),
+            'pending'
+        ))
+        reserva_id = cursor.lastrowid
+        connection.commit()
+
+        registrar_historial(
+            accion="reserva",
+            id_usuario=id_usuario,
+            id_libro=id_libro,
+            id_ejemplar=ejemplar['id'],
+            datos_adicionales={
+                "fecha_solicitud": format_date(data['fecha_solicitud']),
+                "titulo_libro": ejemplar['titulo_libro'],
+                "nombre_usuario": usuario['nombre']
+            }
+        )
+
+        return jsonify({
+            "message": "Reserva creada correctamente",
+            "id": str(reserva_id)
+        }), 201
+
+    except ValueError as e:
+        connection.rollback()
+        return jsonify({"error": "ID inválido"}), 400
+    except Error as e:
+        connection.rollback()
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# ------------------- ENDPOINTS GET -------------------
+
+@app.route('/libros', methods=['GET'])
+def get_libros():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        query = "SELECT * FROM libros WHERE 1=1"
+        params = []
+        
+        titulo = request.args.get('titulo')
+        if titulo:
+            query += " AND titulo LIKE %s"
+            params.append(f"%{titulo}%")
+            
+        id_libro = request.args.get('_id')
+        if id_libro:
+            try:
+                query += " AND id = %s"
+                params.append(int(id_libro))
+            except ValueError:
+                return jsonify({"error": "ID de libro inválido"}), 400
+        
+        cursor.execute(query, params)
+        libros = cursor.fetchall()
+        
+        for libro in libros:
+            convert_ids(libro)
+        
+        return jsonify(libros), 200
+    except Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/ejemplares', methods=['GET'])
+def get_ejemplares():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        query = """
+        SELECT e.*, 
+               COUNT(p.id) as ejemplares_prestados,
+               l.titulo as titulo_libro
+        FROM ejemplares e
+        LEFT JOIN prestamos p ON e.id = p.id_ejemplar AND p.estado = 'borrowed'
+        JOIN libros l ON e.id_libro = l.id
+        GROUP BY e.id
+        """
+        cursor.execute(query)
+        ejemplares = cursor.fetchall()
+        
+        for ejemplar in ejemplares:
+            convert_ids(ejemplar)
+        
+        return jsonify(ejemplares), 200
+    except Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/ejemplares_filtrados', methods=['GET'])
+def get_ejemplares_filtrados():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        query = """
+        SELECT e.*, 
+               COUNT(p.id) as ejemplares_prestados,
+               l.titulo as titulo_libro
+        FROM ejemplares e
+        LEFT JOIN prestamos p ON e.id = p.id_ejemplar AND p.estado = 'borrowed'
+        JOIN libros l ON e.id_libro = l.id
+        WHERE 1=1
+        """
+        params = []
+        
+        nombre_libro = request.args.get('nombre_libro')
+        if nombre_libro:
+            query += " AND l.titulo LIKE %s"
+            params.append(f"%{nombre_libro}%")
+            
+        id_libro = request.args.get('id_libro')
+        if id_libro:
+            try:
+                query += " AND e.id_libro = %s"
+                params.append(int(id_libro))
+            except ValueError:
+                return jsonify({"error": "ID de libro inválido"}), 400
+        
+        query += " GROUP BY e.id"
+        cursor.execute(query, params)
+        ejemplares = cursor.fetchall()
+        
+        for ejemplar in ejemplares:
+            convert_ids(ejemplar)
+        
+        return jsonify(ejemplares), 200
+    except Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/usuarios', methods=['GET'])
+def get_usuarios():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        query = "SELECT * FROM usuarios WHERE 1=1"
+        params = []
+        
+        nombre = request.args.get('nombre')
+        if nombre:
+            query += " AND nombre LIKE %s"
+            params.append(f"%{nombre}%")
+            
+        id_usuario = request.args.get('_id')
+        if id_usuario:
+            try:
+                query += " AND id = %s"
+                params.append(int(id_usuario))
+            except ValueError:
+                return jsonify({"error": "ID de usuario inválido"}), 400
+        
+        cursor.execute(query, params)
+        usuarios = cursor.fetchall()
+        
+        for usuario in usuarios:
+            convert_ids(usuario)
+        
+        return jsonify(usuarios), 200
+    except Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
 if __name__ == '__main__':
     app.run(debug=True)
