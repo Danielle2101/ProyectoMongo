@@ -618,6 +618,223 @@ def get_usuarios():
             cursor.close()
             connection.close()
 
+@app.route('/prestamos', methods=['GET'])
+def get_prestamos():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        query = """
+        SELECT p.*, 
+               e.titulo_libro, 
+               u.nombre as nombre_usuario
+        FROM prestamos p
+        JOIN ejemplares e ON p.id_ejemplar = e.id
+        JOIN usuarios u ON p.id_usuario = u.id
+        """
+        cursor.execute(query)
+        prestamos = cursor.fetchall()
+        
+        for prestamo in prestamos:
+            convert_ids(prestamo)
+            # Formatear fechas
+            prestamo['fecha_recibido'] = format_date(prestamo['fecha_recibido'])
+            prestamo['fecha_debe_entregar'] = format_date(prestamo['fecha_debe_entregar'])
+            if prestamo['fecha_entrega']:
+                prestamo['fecha_entrega'] = format_date(prestamo['fecha_entrega'])
+        
+        return jsonify(prestamos), 200
+    except Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/reservas', methods=['GET'])
+def get_reservas():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        query = """
+        SELECT r.*, 
+               l.titulo as titulo_libro,
+               u.nombre as nombre_usuario
+        FROM reservas r
+        JOIN libros l ON r.id_libro = l.id
+        JOIN usuarios u ON r.id_usuario = u.id
+        """
+        cursor.execute(query)
+        reservas = cursor.fetchall()
+        
+        for reserva in reservas:
+            convert_ids(reserva)
+            reserva['fecha_solicitud'] = format_date(reserva['fecha_solicitud'])
+        
+        return jsonify(reservas), 200
+    except Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/historial', methods=['GET'])
+def get_historial():
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        accion = request.args.get('accion')
+        usuario = request.args.get('usuario')
+        libro = request.args.get('libro')
+
+        query = """
+        SELECT 
+            h.id,
+            h.accion,
+            h.fecha,
+            h.datos_adicionales,
+            u.nombre as nombre_usuario,
+            l.titulo as titulo_libro,
+            e.id as id_ejemplar,
+            e.numero_total as numero_ejemplar,
+            p.fecha_recibido,
+            p.fecha_entrega,
+            p.estado_libro
+        FROM historial h
+        LEFT JOIN usuarios u ON h.id_usuario = u.id
+        LEFT JOIN libros l ON h.id_libro = l.id
+        LEFT JOIN ejemplares e ON h.id_ejemplar = e.id
+        LEFT JOIN prestamos p ON h.id_prestamo = p.id
+        WHERE h.accion IN ('prestamo', 'devolucion', 'reserva')
+        """
+        params = []
+        
+        if accion and accion != 'todos':
+            query += " AND h.accion = %s"
+            params.append(accion)
+            
+        if usuario:
+            query += " AND u.nombre LIKE %s"
+            params.append(f"%{usuario}%")
+            
+        if libro:
+            query += " AND l.titulo LIKE %s"
+            params.append(f"%{libro}%")
+        
+        query += " ORDER BY h.fecha DESC LIMIT 100"
+        cursor.execute(query, params)
+        historial = cursor.fetchall()
+        
+        resultados = []
+        for item in historial:
+            datos_adicionales = json.loads(item['datos_adicionales']) if item['datos_adicionales'] else {}
+            
+            # Determinar acción para mostrar
+            accion_mostrar = "prestado" if item['accion'] == "prestamo" else "devuelto" if item['accion'] == "devolucion" else item['accion']
+            
+            # Obtener fechas
+            fecha_devolucion = format_date(item['fecha_entrega']) if item['accion'] == "devolucion" else None
+            fecha_prestamo = format_date(item['fecha_recibido']) or datos_adicionales.get('fecha_recibido')
+            
+            # Formatear resultado
+            resultado = {
+                "_id": str(item['id']),
+                "accion": accion_mostrar,
+                "fecha_devolucion": fecha_devolucion if fecha_devolucion else '-',
+                "libro": item['titulo_libro'] or datos_adicionales.get('titulo_libro', '-'),
+                "ejemplar": str(item['numero_ejemplar']) if item['numero_ejemplar'] else '-',
+                "usuario": item['nombre_usuario'] or datos_adicionales.get('nombre_usuario', '-'),
+                "fecha_prestamo": fecha_prestamo if fecha_prestamo else '-',
+                "id_usuario": str(item['id_usuario']) if 'id_usuario' in item and item['id_usuario'] else '-',
+                "id_ejemplar": str(item['id_ejemplar']) if 'id_ejemplar' in item and item['id_ejemplar'] else '-',
+                "estado_libro": item['estado_libro'] or datos_adicionales.get('estado_libro', '-')
+            }
+            resultados.append(resultado)
+        
+        return jsonify(resultados), 200
+        
+    except Error as e:
+        print(f"Error en /historial: {str(e)}")
+        return jsonify({"error": "Error al procesar el historial", "detalle": str(e)}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/<coleccion>/<id>', methods=['GET'])
+def get_documento(coleccion, id):
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        colecciones_validas = ['libros', 'ejemplares', 'usuarios', 'prestamos', 'reservas', 'historial']
+        if coleccion not in colecciones_validas:
+            return jsonify({"error": "Colección inválida"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        query = f"SELECT * FROM {coleccion} WHERE id = %s"
+        cursor.execute(query, (int(id),))
+        documento = cursor.fetchone()
+
+        if not documento:
+            return jsonify({"error": f"{coleccion.capitalize()} no encontrado"}), 404
+
+        convert_ids(documento)
+        return jsonify(documento), 200
+    except ValueError:
+        return jsonify({"error": "ID inválido"}), 400
+    except Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# ------------------- ENDPOINTS DELETE -------------------
+
+@app.route('/<coleccion>/<id>', methods=['DELETE'])
+def delete_documento(coleccion, id):
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        colecciones_validas = ['libros', 'ejemplares', 'usuarios', 'prestamos', 'reservas', 'historial']
+        if coleccion not in colecciones_validas:
+            return jsonify({"error": "Colección inválida"}), 400
+
+        cursor = connection.cursor()
+        query = f"DELETE FROM {coleccion} WHERE id = %s"
+        cursor.execute(query, (int(id),))
+        connection.commit()
+        
+        if cursor.rowcount > 0:
+            return jsonify({"message": f"{coleccion.capitalize()} eliminado correctamente"}), 200
+        else:
+            return jsonify({"message": f"{coleccion.capitalize()} no encontrado"}), 404
+            
+    except ValueError:
+        return jsonify({"error": "ID inválido"}), 400
+    except Error as e:
+        connection.rollback()
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
