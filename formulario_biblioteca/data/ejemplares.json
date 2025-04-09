@@ -1,0 +1,3 @@
+{"_id":{"$oid":"67f345a1907aa2a77c5f7dd4"},"numero_total":2,"ejemplares_prestados":0,"estado":"available","id_libro":"67f34589907aa2a77c5f7dd3","titulo_libro":"100 años de soledad"}
+{"_id":{"$oid":"67f6b1473d0d693b15c3ecdc"},"numero_total":2,"ejemplares_prestados":0,"estado":"available","id_libro":"67f6afe43d0d693b15c3ecdb","titulo_libro":"prueba"}
+{"_id":{"$oid":"67f6c9735e8dbfd62f7b5534"},"numero_total":5,"ejemplares_prestados":0,"estado":"available","id_libro":"67f6c9325e8dbfd62f7b5533","titulo_libro":"Ejmeplo"}
