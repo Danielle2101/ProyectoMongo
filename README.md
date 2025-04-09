@@ -1,5 +1,5 @@
 
-# 📚 Sistema de Gestión de Biblioteca 🏛
+# 📚 Sistema de Gestión de Biblioteca 🏛 (MongoDB)
 
 Aplicación web desarrollada con **Flask** (backend) y **HTML/CSS/JavaScript** (frontend), diseñada para administrar eficientemente una biblioteca: libros, ejemplares, préstamos, reservas y usuarios.
 
