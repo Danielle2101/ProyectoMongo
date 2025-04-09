@@ -1,5 +1,3 @@
-¡Perfecto! Aquí tienes el contenido listo para un archivo `README.md` para GitHub, con formato Markdown limpio y profesional:
-
 
 # 📚 Sistema de Gestión de Biblioteca 🏛
 
