@@ -836,5 +836,73 @@ def delete_documento(coleccion, id):
             cursor.close()
             connection.close()
 
+
+# ------------------- ENDPOINT PUT (EDITAR) -------------------
+
+@app.route('/<coleccion>/<id>', methods=['PUT'])
+def editar_documento(coleccion, id):
+    connection = create_connection()
+    if not connection:
+        return jsonify({"error": "Error de conexión a la base de datos"}), 500
+        
+    try:
+        colecciones_validas = ['libros', 'ejemplares', 'usuarios', 'prestamos', 'reservas', 'historial']
+        if coleccion not in colecciones_validas:
+            return jsonify({"error": "Colección inválida"}), 400
+
+        data = request.json
+        if not data:
+            return jsonify({"error": "No se proporcionaron datos para actualizar"}), 400
+
+        set_clause = ", ".join([f"{key} = %s" for key in data.keys()])
+        query = f"UPDATE {coleccion} SET {set_clause} WHERE id = %s"
+        
+        params = list(data.values())
+        params.append(int(id))
+        
+        cursor = connection.cursor()
+        cursor.execute(query, params)
+        connection.commit()
+        
+        if cursor.rowcount > 0:
+            if coleccion == 'prestamos' and 'estado' in data and data['estado'] == 'returned':
+                cursor.execute("""
+                SELECT p.id_ejemplar, p.id_usuario, e.id_libro, e.titulo_libro, u.nombre
+                FROM prestamos p
+                JOIN ejemplares e ON p.id_ejemplar = e.id
+                JOIN usuarios u ON p.id_usuario = u.id
+                WHERE p.id = %s
+                """, (int(id),))
+                prestamo = cursor.fetchone()
+                
+                if prestamo:
+                    registrar_historial(
+                        accion="devolucion",
+                        id_ejemplar=prestamo['id_ejemplar'],
+                        id_usuario=prestamo['id_usuario'],
+                        id_prestamo=id,
+                        id_libro=prestamo['id_libro'],
+                        datos_adicionales={
+                            "estado_libro": data.get('estado_libro', 'bueno'),
+                            "fecha_entrega": data.get('fecha_entrega', datetime.datetime.now().strftime("%Y-%m-%d")),
+                            "titulo_libro": prestamo['titulo_libro'],
+                            "nombre_usuario": prestamo['nombre']
+                        }
+                    )
+            
+            return jsonify({"message": f"{coleccion.capitalize()} actualizado correctamente"}), 200
+        else:
+            return jsonify({"message": f"{coleccion.capitalize()} no encontrado"}), 404
+            
+    except ValueError:
+        return jsonify({"error": "ID inválido"}), 400
+    except Error as e:
+        connection.rollback()
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
 if __name__ == '__main__':
     app.run(debug=True)
